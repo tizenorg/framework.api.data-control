@@ -35,5 +35,6 @@
 
 #define _SECURE_LOGE(fmt, arg...) SECURE_LOGE(fmt, ##arg)
 #define _SECURE_LOGI(fmt, arg...) SECURE_LOGI(fmt, ##arg)
+#define _SECURE_LOGD(fmt, arg...) SECURE_LOGD(fmt, ##arg)
 
 #endif /* __TIZEN_APPFW_DATA_CONTROL_LOG_H__ */

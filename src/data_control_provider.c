@@ -134,9 +134,9 @@ data_control_provider_sql_register_cb(data_control_provider_sql_cb *callback, vo
 {
 	int retval;
 
-	retval = check_privilege(PRIVILEGE_DATA_SHARING);
+	retval = data_control_provider_check_privilege();
 	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
+		return retval;
 	}
 
 	if (!callback)
@@ -165,9 +165,9 @@ data_control_provider_map_register_cb(data_control_provider_map_cb *callback, vo
 {
 	int retval;
 
-	retval = check_privilege(PRIVILEGE_DATA_SHARING);
+	retval = data_control_provider_check_privilege();
 	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
+		return retval;
 	}
 
 	if (!callback)
@@ -254,9 +254,12 @@ static void bundle_foreach_cb(const char *key, const int type, const bundle_keyv
 EXPORT_API char*
 data_control_provider_create_insert_statement(data_control_h provider, bundle *insert_map)
 {
+	char *return_val = NULL;
+
 	int row_count = bundle_get_count(insert_map);
 	if (provider == NULL || row_count == 0)
 	{
+		_LOGE("Invalid parameter.");
 		set_last_result(DATA_CONTROL_ERROR_INVALID_PARAMETER);
 		return NULL;
 	}
@@ -264,6 +267,7 @@ data_control_provider_create_insert_statement(data_control_h provider, bundle *i
 	key_val_pair *cols = (key_val_pair *) calloc(sizeof(key_val_pair), 1);
 	if (cols == NULL)
 	{
+		_LOGE("Failed to allocate memory.");
 		set_last_result(DATA_CONTROL_ERROR_OUT_OF_MEMORY);
 		return NULL;
 	}
@@ -273,17 +277,19 @@ data_control_provider_create_insert_statement(data_control_h provider, bundle *i
 	cols->keys = (char **) calloc(sizeof(char *), row_count);
 	if (cols->keys == NULL)
 	{
-		free(cols);
+		_LOGE("Failed to allocate memory.");
 		set_last_result(DATA_CONTROL_ERROR_OUT_OF_MEMORY);
+		free(cols);
 		return NULL;
 	}
 
 	cols->vals = (char **) calloc(sizeof(char *), row_count);
 	if (cols->vals == NULL)
 	{
+		_LOGE("Failed to allocate memory.");
+		set_last_result(DATA_CONTROL_ERROR_OUT_OF_MEMORY);
 		free(cols->keys);
 		free(cols);
-		set_last_result(DATA_CONTROL_ERROR_OUT_OF_MEMORY);
 		return NULL;
 	}
 
@@ -294,54 +300,53 @@ data_control_provider_create_insert_statement(data_control_h provider, bundle *i
 	data_control_sql_get_data_id(provider, &data_id);
 
 	int sql_len = INSERT_STMT_CONST_LEN + strlen(data_id) + (row_count - 1) * 4 + (cols->length) + 1;
-
-	_LOGI("SQL statement length: %d", sql_len);
+	_SECURE_LOGD("SQL statement length: %d", sql_len);
 
 	char* sql = (char *) calloc(sizeof(char), sql_len);
 	if (sql == NULL)
 	{
-		free(data_id);
-		free(cols->keys);
-		free(cols->vals);
-		free(cols);
+		_LOGE("Failed to allocate memory.");
 		set_last_result(DATA_CONTROL_ERROR_OUT_OF_MEMORY);
-		return NULL;
+		return_val = NULL;
+		goto error;
 	}
-	memset(sql, 0, sql_len);
 
-	sprintf(sql, "INSERT INTO %s (", data_id);
-	free(data_id);
+	snprintf(sql, sql_len, "INSERT INTO %s (", data_id);
 
 	for(index = 0; index < row_count - 1; index++)
 	{
-		strcat(sql, cols->keys[index]);
-		strcat(sql, ", ");
+		strncat(sql, cols->keys[index], sql_len - strlen(sql));
+		strncat(sql, ", ", sql_len - strlen(sql));
 	}
 
-	strcat(sql, cols->keys[index]);
-	strcat(sql, ") VALUES (");
+	strncat(sql, cols->keys[index], sql_len - strlen(sql));
+	strncat(sql, ") VALUES (", sql_len - strlen(sql));
 
 	for(index = 0; index < row_count - 1; index++)
 	{
-		strcat(sql, cols->vals[index]);
-		strcat(sql, ", ");
+		strncat(sql, cols->vals[index], sql_len - strlen(sql));
+		strncat(sql, ", ", sql_len - strlen(sql));
 	}
 
-	strcat(sql, cols->vals[index]);
-	strcat(sql, ")");
+	strncat(sql, cols->vals[index], sql_len - strlen(sql));
+	strncat(sql, ")", sql_len - strlen(sql));
 
-	_LOGI("SQL statement is: %s", sql);
+	_SECURE_LOGI("SQL statement is: %s", sql);
+	return_val = sql;
 
+error:
 	for(index = 0; index < row_count; index++)
 	{
 		free(cols->keys[index]);
 		free(cols->vals[index]);
 	}
+
 	free(cols->keys);
 	free(cols->vals);
 	free(cols);
+	free(data_id);
 
-	return sql;
+	return return_val;
 }
 
 EXPORT_API char*
@@ -360,25 +365,28 @@ data_control_provider_create_delete_statement(data_control_h provider, const cha
 	int cond_len = (where != NULL) ? (WHERE_COND_CONST_LEN + strlen(where)) : 0;
 	int sql_len = DELETE_STMT_CONST_LEN + strlen(data_id) + cond_len + 1;
 
-	_LOGI("SQL statement length: %d", sql_len);
+	_SECURE_LOGD("SQL statement length: %d", sql_len);
 
 	char* sql = (char *) calloc(sizeof(char), sql_len);
 	if (sql == NULL)
 	{
-		free(data_id);
+		_LOGE("Failed to allocate memory.");
 		set_last_result(DATA_CONTROL_ERROR_OUT_OF_MEMORY);
+		free(data_id);
 		return NULL;
 	}
 	memset(sql, 0, sql_len);
 
-	sprintf(sql, "DELETE FROM %s", data_id);
+	snprintf(sql, sql_len, "DELETE FROM %s", data_id);
 	if (where)
 	{
-		strcat(sql, " WHERE ");
-		strcat(sql, where);
+
+		strncat(sql, " WHERE ", sql_len - strlen(sql));
+		strncat(sql, where, sql_len - strlen(sql));
+
 	}
 
-	_LOGI("SQL statement is: %s", sql);
+	_SECURE_LOGI("SQL statement is: %s", sql);
 
 	free(data_id);
 	return sql;
@@ -387,9 +395,11 @@ data_control_provider_create_delete_statement(data_control_h provider, const cha
 EXPORT_API char*
 data_control_provider_create_update_statement(data_control_h provider, bundle *update_map, const char *where)
 {
+	char *return_val = NULL;
 	int row_count = bundle_get_count(update_map);
 	if (provider == NULL || row_count == 0)
 	{
+		_LOGE("Invalid parameter.");
 		set_last_result(DATA_CONTROL_ERROR_INVALID_PARAMETER);
 		return NULL;
 	}
@@ -397,6 +407,7 @@ data_control_provider_create_update_statement(data_control_h provider, bundle *u
 	key_val_pair *cols = (key_val_pair *) calloc(sizeof(key_val_pair), 1);
 	if (cols == NULL)
 	{
+		_LOGE("Failed to allocate memory.");
 		set_last_result(DATA_CONTROL_ERROR_OUT_OF_MEMORY);
 		return NULL;
 	}
@@ -406,16 +417,18 @@ data_control_provider_create_update_statement(data_control_h provider, bundle *u
 	cols->keys = (char **) calloc(sizeof(char *), row_count);
 	if (cols->keys == NULL)
 	{
-		free(cols);
+		_LOGE("Failed to allocate memory.");
 		set_last_result(DATA_CONTROL_ERROR_OUT_OF_MEMORY);
+		free(cols);
 		return NULL;
 	}
 	cols->vals = (char **) calloc(sizeof(char *), row_count);
 	if (cols->vals == NULL)
 	{
+		_LOGE("Failed to allocate memory.");
+		set_last_result(DATA_CONTROL_ERROR_OUT_OF_MEMORY);
 		free(cols->keys);
 		free(cols);
-		set_last_result(DATA_CONTROL_ERROR_OUT_OF_MEMORY);
 		return NULL;
 	}
 
@@ -428,53 +441,53 @@ data_control_provider_create_update_statement(data_control_h provider, bundle *u
 	int cond_len = (where != NULL) ? (WHERE_COND_CONST_LEN + strlen(where)) : 0;
 	int sql_len = UPDATE_STMT_CONST_LEN + strlen(data_id) + (cols->length) + (row_count - 1) * 5 + cond_len + 1;
 
-	_LOGI("SQL statement length: %d", sql_len);
+	_SECURE_LOGD("SQL statement length: %d", sql_len);
 
 	char* sql = (char *) calloc(sizeof(char), sql_len);
 	if (sql == NULL)
 	{
-		free(data_id);
-		free(cols->keys);
-		free(cols->vals);
-		free(cols);
+		_LOGE("Failed to allocate memory.");
 		set_last_result(DATA_CONTROL_ERROR_OUT_OF_MEMORY);
-		return NULL;
+		return_val = NULL;
+		goto error;
 	}
-	memset(sql, 0, sql_len);
 
-	sprintf(sql, "UPDATE %s SET ", data_id);
-	free(data_id);
+	snprintf(sql, sql_len, "UPDATE %s SET ", data_id);
 
 	for(index = 0; index < row_count - 1; index++)
 	{
-		strcat(sql, cols->keys[index]);
-		strcat(sql, " = ");
-		strcat(sql, cols->vals[index]);
-		strcat(sql, ", ");
+		strncat(sql, cols->keys[index], sql_len - strlen(sql));
+		strncat(sql, " = ", sql_len - strlen(sql));
+		strncat(sql, cols->vals[index], sql_len - strlen(sql));
+		strncat(sql, ", ", sql_len - strlen(sql));
 	}
 
-	strcat(sql, cols->keys[index]);
-	strcat(sql, " = ");
-	strcat(sql, cols->vals[index]);
+	strncat(sql, cols->keys[index], sql_len - strlen(sql));
+	strncat(sql, " = ", sql_len - strlen(sql));
+	strncat(sql, cols->vals[index], sql_len - strlen(sql));
 
 	if (where)
 	{
-		strcat(sql, " WHERE ");
-		strcat(sql, where);
+		strncat(sql, " WHERE ", sql_len - strlen(sql));
+		strncat(sql, where, sql_len - strlen(sql));
 	}
 
-	_LOGI("SQL statement is: %s", sql);
+	_SECURE_LOGI("SQL statement is: %s", sql);
+	return_val = sql;
 
+error:
 	for(index = 0; index < row_count; index++)
 	{
 		free(cols->keys[index]);
 		free(cols->vals[index]);
 	}
+
 	free(cols->keys);
 	free(cols->vals);
 	free(cols);
+	free(data_id);
 
-	return sql;
+	return return_val;
 }
 
 EXPORT_API char*
@@ -484,6 +497,7 @@ data_control_provider_create_select_statement(data_control_h provider, const cha
 	int col_name_length = 0;
 	if (provider == NULL)
 	{
+		_LOGE("Invalid parameter.");
 		set_last_result(DATA_CONTROL_ERROR_INVALID_PARAMETER);
 		return NULL;
 	}
@@ -511,47 +525,50 @@ data_control_provider_create_select_statement(data_control_h provider, const cha
 	int order_len = (order != NULL) ? (ORDER_CLS_CONST_LEN + strlen(order)) : 0;
 	int sql_len = SELECT_STMT_CONST_LEN + col_name_length + strlen(data_id) + cond_len + order_len + 1;
 
-	_LOGI("SQL statement length: %d", sql_len);
+	_SECURE_LOGD("SQL statement length: %d", sql_len);
 
 	char* sql = (char *) calloc(sizeof(char), sql_len);
 	if (sql == NULL)
 	{
-		free(data_id);
+		_LOGE("Failed to allocate memory.");
 		set_last_result(DATA_CONTROL_ERROR_OUT_OF_MEMORY);
+		free(data_id);
 		return NULL;
 	}
 	memset(sql, 0, sql_len);
 
-	strcpy(sql, "SELECT ");
+	strncpy(sql, "SELECT ", sql_len);
 	if (!column_list)
 	{
-		strcat(sql, "*");
+		strncat(sql, "*", sql_len - strlen(sql));
 	}
 	else
 	{
 		for (index = 0; index < column_count - 1; index++)
 		{
-			strcat(sql, column_list[index]);
-			strcat(sql, ", ");
+			strncat(sql, column_list[index], sql_len - strlen(sql));
+			strncat(sql, ", ", sql_len - strlen(sql));
 		}
-		strcat(sql, column_list[index]);
+		strncat(sql, column_list[index], sql_len - strlen(sql));
 	}
 
-	strcat(sql, " FROM ");
-	strcat(sql, data_id);
+	strncat(sql, " FROM ", sql_len - strlen(sql));
+	strncat(sql, data_id, sql_len - strlen(sql));
 
 	if (where)
 	{
-		strcat(sql, " WHERE ");
-		strcat(sql, where);
+		strncat(sql, " WHERE ", sql_len - strlen(sql));
+		strncat(sql, where, sql_len - strlen(sql));
+
 	}
 	if (order)
 	{
-		strcat(sql, " ORDER BY ");
-		strcat(sql, order);
+		strncat(sql, " ORDER BY ", sql_len - strlen(sql));
+		strncat(sql, order, sql_len - strlen(sql));
+
 	}
 
-	_LOGI("SQL statement is: %s", sql);
+	_SECURE_LOGI("SQL statement is: %s", sql);
 
 	free(data_id);
 	return sql;
@@ -564,6 +581,7 @@ data_control_provider_match_provider_id(data_control_h provider, const char *pro
 	char* prov_id = NULL;
 	if(provider == NULL || provider_id == NULL)
 	{
+		_LOGE("Invalid parameter.");
 		set_last_result(DATA_CONTROL_ERROR_INVALID_PARAMETER);
 		return false;
 	}
@@ -594,6 +612,7 @@ data_control_provider_match_data_id(data_control_h provider, const char *data_id
 	char* data = NULL;
 	if(provider == NULL || data_id == NULL)
 	{
+		_LOGE("Invalid parameter.");
 		set_last_result(DATA_CONTROL_ERROR_INVALID_PARAMETER);
 		return false;
 	}

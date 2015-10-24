@@ -183,14 +183,9 @@ data_control_map_get(data_control_h provider, const char *key, int *request_id)
 {
 	int retval;
 
-	retval = check_privilege(PRIVILEGE_DATA_SHARING);
+	retval = data_control_consumer_check_privilege();
 	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
-	}
-
-	retval = check_privilege(PRIVILEGE_APP_MANAGER_LAUNCH);
-	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
+		return retval;
 	}
 
 	return convert_to_tizen_error(datacontrol_map_get((datacontrol_h)provider, key, request_id));
@@ -206,14 +201,9 @@ data_control_map_get_with_page(data_control_h provider, const char *key, int *re
 		return DATA_CONTROL_ERROR_INVALID_PARAMETER;
 	}
 
-	retval = check_privilege(PRIVILEGE_DATA_SHARING);
+	retval = data_control_consumer_check_privilege();
 	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
-	}
-
-	retval = check_privilege(PRIVILEGE_APP_MANAGER_LAUNCH);
-	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
+		return retval;
 	}
 
 	return convert_to_tizen_error(datacontrol_map_get_with_page((datacontrol_h)provider, key, request_id, page_number, count_per_page));
@@ -224,15 +214,11 @@ data_control_map_set(data_control_h provider, const char *key, const char *old_v
 {
 	int retval;
 
-	retval = check_privilege(PRIVILEGE_DATA_SHARING);
+	retval = data_control_consumer_check_privilege();
 	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
+		return retval;
 	}
 
-	retval = check_privilege(PRIVILEGE_APP_MANAGER_LAUNCH);
-	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
-	}
 	return convert_to_tizen_error(datacontrol_map_set((datacontrol_h)provider, key, old_value, new_value, request_id));
 }
 
@@ -241,14 +227,9 @@ data_control_map_add(data_control_h provider, const char *key, const char *value
 {
 	int retval;
 
-	retval = check_privilege(PRIVILEGE_DATA_SHARING);
+	retval = data_control_consumer_check_privilege();
 	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
-	}
-
-	retval = check_privilege(PRIVILEGE_APP_MANAGER_LAUNCH);
-	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
+		return retval;
 	}
 
 	return convert_to_tizen_error(datacontrol_map_add((datacontrol_h)provider, key, value, request_id));
@@ -259,14 +240,9 @@ data_control_map_remove(data_control_h provider, const char *key, const char *va
 {
 	int retval;
 
-	retval = check_privilege(PRIVILEGE_DATA_SHARING);
+	retval = data_control_consumer_check_privilege();
 	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
-	}
-
-	retval = check_privilege(PRIVILEGE_APP_MANAGER_LAUNCH);
-	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
+		return retval;
 	}
 
 	return convert_to_tizen_error(datacontrol_map_remove((datacontrol_h)provider, key, value, request_id));

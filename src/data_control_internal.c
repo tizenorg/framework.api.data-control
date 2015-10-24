@@ -20,9 +20,9 @@
 #include <glib.h>
 #include <unistd.h>
 
-#include <sys/smack.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <privilege_checker.h>
 #include "data_control_internal.h"
 
 #ifdef LOG_TAG
@@ -33,6 +33,10 @@
 
 #define _LOGE(fmt, arg...) LOGE(fmt,##arg)
 #define _LOGD(fmt, arg...) LOGD(fmt, ##arg)
+
+#define TIZEN_PRIVILEGE_DATA_CONTROL_SHARING "http://tizen.org/privilege/datasharing"
+#define TIZEN_PRIVILEGE_APP_MANAGER_LAUNCH "http://tizen.org/privilege/appmanager.launch"
+#define TIZEN_PRIVILEGE_DATA_CONTROL_CONSUMER "http://tizen.org/privilege/datacontrol.consumer"
 
 static const char *data_control_error_to_string(data_control_error_e error)
 {
@@ -89,66 +93,38 @@ int data_control_error(data_control_error_e error,
 	return error;
 }
 
-
-int check_privilege(privilege_type type)
+int data_control_consumer_check_privilege()
 {
-	int fd = 0;
-	int ret = 0;
-	char subject_label[SMACK_LABEL_LEN + 1] = "";
+	int retval;
 
-	fd = open("/proc/self/attr/current", O_RDONLY);
-	if (fd < 0) {
-		_LOGE("open [%d] failed!", errno);
-		return DATA_CONTROL_ERROR_IO_ERROR;
+	retval = privilege_checker_check_privilege(TIZEN_PRIVILEGE_DATA_CONTROL_CONSUMER);
+	if (retval != PRIVILEGE_CHECKER_ERR_NONE) {
+		_LOGD("%s is not declared. This might be native application", TIZEN_PRIVILEGE_DATA_CONTROL_CONSUMER);
+	} else {
+		return DATA_CONTROL_ERROR_NONE;
 	}
 
-	ret = read(fd, subject_label, SMACK_LABEL_LEN);
-	if (ret < 0) {
-		_LOGE("read [%d] failed!", errno);
-		close(fd);
-		return DATA_CONTROL_ERROR_IO_ERROR;
-	}
-	close(fd);
-
-	_LOGD("subject_label : %s", subject_label);
-	if (type == PRIVILEGE_DATA_SHARING) {
-		ret = smack_have_access(subject_label,
-				"security-server::api-open-for-privileged", "rw");
-		if (ret == 1) {
-			_LOGD("permission allowed");
-			return DATA_CONTROL_ERROR_NONE;
-		} else if (ret == -1) {
-			_LOGE("smack_have_access() fail");
-			return DATA_CONTROL_ERROR_IO_ERROR;
-		} else if (ret == 0) {
-			_LOGD("permission denied");
-			return DATA_CONTROL_ERROR_PERMISSION_DENIED;
-		}
-	} else if (type == PRIVILEGE_APP_MANAGER_LAUNCH) {
-		ret = smack_have_access(subject_label, "aul::launch", "x");
-		if (ret == 1) {
-			_LOGD("permission allowed");
-			return DATA_CONTROL_ERROR_NONE;
-		} else if (ret == -1) {
-			_LOGE("smack_have_access() fail");
-			return DATA_CONTROL_ERROR_IO_ERROR;
-		} else if (ret == 0) {
-			_LOGD("permission denied");
-			return DATA_CONTROL_ERROR_PERMISSION_DENIED;
-		}
-
-		ret = smack_have_access(subject_label, "app-svc::db", "rwxa");
-		if (ret == 1) {
-			_LOGD("permission allowed");
-			return DATA_CONTROL_ERROR_NONE;
-		} else if (ret == -1) {
-			_LOGE("smack_have_access() fail");
-			return DATA_CONTROL_ERROR_IO_ERROR;
-		} else if (ret == 0) {
-			_LOGD("permission denied");
-			return DATA_CONTROL_ERROR_PERMISSION_DENIED;
-		}
+	retval = privilege_checker_check_privilege(TIZEN_PRIVILEGE_DATA_CONTROL_SHARING);
+	if (retval != PRIVILEGE_CHECKER_ERR_NONE) {
+		return data_control_error(DATA_CONTROL_ERROR_PERMISSION_DENIED, __FUNCTION__, "failed to allow privilege");
 	}
 
-	return DATA_CONTROL_ERROR_IO_ERROR;
+	retval = privilege_checker_check_privilege(TIZEN_PRIVILEGE_APP_MANAGER_LAUNCH);
+	if (retval != PRIVILEGE_CHECKER_ERR_NONE) {
+		return data_control_error(DATA_CONTROL_ERROR_PERMISSION_DENIED, __FUNCTION__, "failed to allow privilege");
+	}
+
+	return DATA_CONTROL_ERROR_NONE;
+}
+
+int data_control_provider_check_privilege()
+{
+	int retval;
+
+	retval = privilege_checker_check_privilege(TIZEN_PRIVILEGE_DATA_CONTROL_SHARING);
+	if (retval != PRIVILEGE_CHECKER_ERR_NONE) {
+		return data_control_error(DATA_CONTROL_ERROR_PERMISSION_DENIED, __FUNCTION__, "failed to allow privilege");
+	}
+
+	return DATA_CONTROL_ERROR_NONE;
 }

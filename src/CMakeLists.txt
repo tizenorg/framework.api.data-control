@@ -15,7 +15,7 @@ SET (${this_target}_SOURCE_FILES
 	data_control_provider.c
 	)
 
-SET(requires "data-control dlog glib-2.0 capi-base-common bundle libsmack")
+SET(requires "data-control dlog glib-2.0 capi-base-common bundle security-privilege-checker")
 
 INCLUDE(FindPkgConfig)
 pkg_check_modules(${this_target} REQUIRED ${requires})

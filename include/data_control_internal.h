@@ -24,15 +24,12 @@
 extern "C" {
 #endif
 
-typedef enum {
-	PRIVILEGE_DATA_SHARING,
-	PRIVILEGE_APP_MANAGER_LAUNCH
-} privilege_type;
-
 int convert_to_tizen_error(datacontrol_error_e error);
-int check_privilege(privilege_type type);
 int data_control_error(data_control_error_e error,
 		const char *function, const char *description);
+
+int data_control_consumer_check_privilege();
+int data_control_provider_check_privilege();
 
 #ifdef __cplusplus
 }

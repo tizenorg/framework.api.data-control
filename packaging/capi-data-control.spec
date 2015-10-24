@@ -1,7 +1,7 @@
 Name:		capi-data-control
 Summary:	Data Control managed library
-Version: 	1.2.2.3
-Release:    2
+Version: 	1.2.3.2
+Release:    1
 Group:		Application Framework/Libraries
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
@@ -9,10 +9,10 @@ Source1001:	%{name}.manifest
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(bundle)
 BuildRequires:  pkgconfig(data-control)
-BuildRequires:  pkgconfig(libsmack)
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(capi-base-common)
+BuildRequires:  pkgconfig(security-privilege-checker)
 
 # runtime requires
 Requires: data-control

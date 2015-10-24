@@ -181,14 +181,9 @@ data_control_sql_insert(data_control_h provider, const bundle* insert_data, int 
 {
 	int retval;
 
-	retval = check_privilege(PRIVILEGE_DATA_SHARING);
+	retval = data_control_consumer_check_privilege();
 	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
-	}
-
-	retval = check_privilege(PRIVILEGE_APP_MANAGER_LAUNCH);
-	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
+		return retval;
 	}
 
 	return datacontrol_sql_insert((datacontrol_h)provider, insert_data, request_id);
@@ -199,14 +194,9 @@ data_control_sql_delete(data_control_h provider, const char *where, int *request
 {
 	int retval;
 
-	retval = check_privilege(PRIVILEGE_DATA_SHARING);
+	retval = data_control_consumer_check_privilege();
 	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
-	}
-
-	retval = check_privilege(PRIVILEGE_APP_MANAGER_LAUNCH);
-	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
+		return retval;
 	}
 
 	return datacontrol_sql_delete((datacontrol_h)provider, where, request_id);
@@ -217,14 +207,9 @@ data_control_sql_select(data_control_h provider, char **column_list, int column_
 {
 	int retval;
 
-	retval = check_privilege(PRIVILEGE_DATA_SHARING);
+	retval = data_control_consumer_check_privilege();
 	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
-	}
-
-	retval = check_privilege(PRIVILEGE_APP_MANAGER_LAUNCH);
-	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
+		return retval;
 	}
 
 	return datacontrol_sql_select((datacontrol_h)provider, column_list, column_count, where, order, request_id);
@@ -239,14 +224,10 @@ data_control_sql_select_with_page(data_control_h provider, char **column_list, i
 	{
 		return DATA_CONTROL_ERROR_INVALID_PARAMETER;
 	}
-	retval = check_privilege(PRIVILEGE_DATA_SHARING);
-	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
-	}
 
-	retval = check_privilege(PRIVILEGE_APP_MANAGER_LAUNCH);
+	retval = data_control_consumer_check_privilege();
 	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
+		return retval;
 	}
 
 	return datacontrol_sql_select_with_page((datacontrol_h)provider, column_list, column_count, where, order, page_number, count_per_page, request_id);
@@ -258,14 +239,9 @@ data_control_sql_update(data_control_h provider, const bundle* update_data, cons
 {
 	int retval;
 
-	retval = check_privilege(PRIVILEGE_DATA_SHARING);
+	retval = data_control_consumer_check_privilege();
 	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
-	}
-
-	retval = check_privilege(PRIVILEGE_APP_MANAGER_LAUNCH);
-	if (retval != DATA_CONTROL_ERROR_NONE) {
-		return data_control_error(retval, __FUNCTION__, "failed to allow privilege");
+		return retval;
 	}
 
 	return datacontrol_sql_update((datacontrol_h)provider, update_data, where, request_id);

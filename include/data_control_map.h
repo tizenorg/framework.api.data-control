@@ -312,6 +312,7 @@ int data_control_map_unregister_response_cb(data_control_h provider);
  * @remarks If you want to use this api, you must add privileges.
  * @remarks If the length of value list associated with the @a key is larger than 20, this API only returns the first 20 values.
  * @remarks The following example demonstrates how to use the %data_control_map_get() method.
+ * @remarks If the length of value list associated with the key is larger than 20, value list only include first 20 values.
  *
  * @code
  *
